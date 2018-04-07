@@ -161,8 +161,8 @@ public class MatrixInverse {
         float[][] p=MatrixInverse.oneWayToTwoAndTran(phoneAcc);
 
         float[][] mull=new float[3][1];
-        mull=MatrixInverse.mul(inWatchRotateMatix,w);
-        mull=MatrixInverse.mul(reverseMatrix,mull);
+        //mull=MatrixInverse.mul(inWatchRotateMatix,w);
+        mull=MatrixInverse.mul(reverseMatrix,w);
         float[] result=new float[3];
         result[0]=mull[0][0];
         result[1]=mull[1][0];

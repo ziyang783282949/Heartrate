@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     float[] rotate = new float[9];
     float[] watchAcc = new float[3];
     float[] phoneAcc = new float[3];
+    float[] devicePhoneAcc=new float[3];
     float[] watchLinearAcc = new float[3];
     float[] phoneLinearAcc = new float[3];
     private static final String TAG = "sensor";
@@ -66,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button start;
     private Button stop;
     private Button process;
+    private Button subtract;
     //追加内容
     String beforeLinearAccAndGyo = "";
     //String beforeGyo = "";
@@ -74,7 +76,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //存储位置
     String beforeFileName = "before.txt";
     String afterFileName = "after.txt";
-    String transferFileName = "transferFile.txt";
+    String transferFileName = "projection.txt";
+    String subTractName = "subtraction.txt";
     String sd = "";
 
     private long thread = 10;
@@ -83,8 +86,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private BufferedWriter beforeBw;
     private BufferedWriter afterBw;
 
+    //projection输出流
     private File transFile;
     private BufferedWriter transBW;
+    //sub输出流
+    private File subFile;
+    private BufferedWriter subBW;
 
     private TextView tv_time;
     private TextView processResult;
@@ -283,8 +290,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 try {
                     Toast.makeText(this, "start process", Toast.LENGTH_LONG).show();
                     processResult.setText("正在处理");
+                    //projection
                     transFile = new File(Environment.getExternalStorageDirectory(), transferFileName);
                     transBW = new BufferedWriter(new FileWriter(transFile, false));
+                    //sub
+                    subFile = new File(Environment.getExternalStorageDirectory(), subTractName);
+                    subBW = new BufferedWriter(new FileWriter(subFile, false));
                     new Calculate().start();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -362,6 +373,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 //手表和手机加速度
                                 watchAcc = MatrixInverse.changeToFloat(sW[5]);
                                 phoneAcc = MatrixInverse.changeToFloat(sP[5]);
+                                devicePhoneAcc=MatrixInverse.changeToFloat(sP[2]);
                                 watchAcc = MatrixInverse.watchToPhone(watchAcc, phoneAcc, inWatchRotateMatix, reverseMatrix);
 
                                 //手表和手机线性加速度
@@ -377,6 +389,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 transBW.newLine();
                                 //使用缓冲区中的方法，将数据刷新到目的地文件中去。
                                 transBW.flush();
+
+                                subBW.write(
+                                        sW[0] + ";" + sW[1]+";"+
+                                                (watchAcc[0]-devicePhoneAcc[0])+","+
+                                                (watchAcc[1]-devicePhoneAcc[1])+","+
+                                                (watchAcc[2]-devicePhoneAcc[2])
+                                );
+                                subBW.newLine();
+                                //使用缓冲区中的方法，将数据刷新到目的地文件中去。
+                                subBW.flush();
                                 strW = bufferedReaderW.readLine();
                                 strP = bufferedReaderP.readLine();
                             } else if (Long.parseLong(sW[1]) >= Long.parseLong(sP[1])) {
@@ -389,9 +411,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         }
                     }
                 }
-
                 //close
                 transBW.close();
+                subBW.close();
                 inputStreamW.close();
                 bufferedReaderW.close();
                 inputStreamP.close();
