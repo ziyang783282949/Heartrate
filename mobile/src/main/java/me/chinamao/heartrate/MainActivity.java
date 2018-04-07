@@ -62,6 +62,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     float[] devicePhoneAcc=new float[3];
     float[] watchLinearAcc = new float[3];
     float[] phoneLinearAcc = new float[3];
+    float[] watchG = new float[3];
+    float[] phoneG = new float[3];
+    float[] devicePhoneG = new float[3];
     private static final String TAG = "sensor";
 
     private Button start;
@@ -126,11 +129,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         gyroscopeSensor = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 
 
-        sm.registerListener(myListener, aSensor, SensorManager.SENSOR_DELAY_NORMAL);
-        sm.registerListener(myListener, mSensor, SensorManager.SENSOR_DELAY_NORMAL);
-        sm.registerListener(myListener, gSensor, SensorManager.SENSOR_DELAY_NORMAL);
-        sm.registerListener(myListener, linearAc, SensorManager.SENSOR_DELAY_NORMAL);
-        sm.registerListener(myListener, gyroscopeSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        sm.registerListener(myListener, aSensor, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener(myListener, mSensor, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener(myListener, gSensor, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener(myListener, linearAc, SensorManager.SENSOR_DELAY_GAME);
+        sm.registerListener(myListener, gyroscopeSensor, SensorManager.SENSOR_DELAY_GAME);
         //更新显示数据的方法
         calculateOrientation();
     }
@@ -184,7 +187,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         gyoTemp[2] = rotate[6] * gyoValues[0] + rotate[7] * gyoValues[1] + rotate[8] * gyoValues[2];
 
 
-        Log.i(TAG, "时间戳：" + tv_time.getText().toString() + ";" + gyoTemp[0] + "," + gyoTemp[1] + "," + gyoTemp[2]);
+        //Log.i(TAG, "时间戳：" + tv_time.getText().toString() + ";" + gyoTemp[0] + "," + gyoTemp[1] + "," + gyoTemp[2]);
         sd = timeStampToDate(timeStamp);
         beforeLinearAccAndGyo =
                 tv_time.getText().toString() + ";" +
@@ -196,7 +199,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         temp2[0] + "," + temp2[1] + "," + temp2[2] + ";" +
                         rotate[0] + "," + rotate[1] + "," + rotate[2] + "," +
                         rotate[3] + "," + rotate[4] + "," + rotate[5] + "," +
-                        rotate[6] + "," + rotate[7] + "," + rotate[8];
+                        rotate[6] + "," + rotate[7] + "," + rotate[8]+";"+
+                        gyoTemp[0] + "," + gyoTemp[1] + "," + gyoTemp[2];
 
         writeDealInfo(beforeLinearAccAndGyo, beforeBw);
         //gAbsValue[0] = rotate[0] * gValues[0] + rotate[1] * gValues[1] + rotate[2] * gValues[2];
@@ -340,7 +344,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 String[] sW;
                 String[] sP;
                 String[] sWW;
+                String[] sWG;
                 String[] sPP;
+                String[] sPG;
 
                 long sub = 10;
                 boolean flag = true;
@@ -355,6 +361,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 //使用缓冲区中的方法将数据写入到缓冲区中。
                                 sWW = sW[7].split(",");
                                 sPP = sP[7].split(",");
+                                sWG=sW[4].split(",");
+                                sWG=sP[4].split(",");
                                 for (int i = 0; i < 3; i++) {
                                     for (int j = 0; j < 3; j++) {
                                         inWatchRotateMatix[i][j] = Float.parseFloat(sWW[i * 3 + j]);
@@ -374,17 +382,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 watchAcc = MatrixInverse.changeToFloat(sW[5]);
                                 phoneAcc = MatrixInverse.changeToFloat(sP[5]);
                                 devicePhoneAcc=MatrixInverse.changeToFloat(sP[2]);
-                                watchAcc = MatrixInverse.watchToPhone(watchAcc, phoneAcc, inWatchRotateMatix, reverseMatrix);
+                                watchAcc = MatrixInverse.watchToPhone(watchAcc, phoneAcc, reverseMatrix);
 
                                 //手表和手机线性加速度
                                 watchLinearAcc = MatrixInverse.changeToFloat(sW[6]);
                                 phoneLinearAcc = MatrixInverse.changeToFloat(sP[6]);
-                                watchLinearAcc = MatrixInverse.watchToPhone(watchLinearAcc, phoneLinearAcc, inWatchRotateMatix, reverseMatrix);
+                                watchLinearAcc = MatrixInverse.watchToPhone(watchLinearAcc, phoneLinearAcc, reverseMatrix);
+
+                                //手表和手机陀螺仪
+                                watchG=MatrixInverse.changeToFloat(sW[8]);
+                                phoneG=MatrixInverse.changeToFloat(sP[8]);
+                                devicePhoneG=MatrixInverse.changeToFloat(sP[4]);
+                                watchG=MatrixInverse.watchToPhone(watchG,phoneG,reverseMatrix);
 
                                 transBW.write(
                                         sW[0] + ";" + sW[1] + ";" + sW[2] + ";" + sW[3] + ";" + sW[4] + ";" +
                                                 watchAcc[0] + "," + watchAcc[1] + "," + watchAcc[2] + ";" +
-                                                watchLinearAcc[0] + "," + watchLinearAcc[1] + "," + watchLinearAcc[2]
+                                                watchLinearAcc[0] + "," + watchLinearAcc[1] + "," + watchLinearAcc[2]+";"+
+                                                watchG[0] + "," + watchG[1] + "," + watchG[2]
                                 );
                                 transBW.newLine();
                                 //使用缓冲区中的方法，将数据刷新到目的地文件中去。
@@ -394,7 +409,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                         sW[0] + ";" + sW[1]+";"+
                                                 (watchAcc[0]-devicePhoneAcc[0])+","+
                                                 (watchAcc[1]-devicePhoneAcc[1])+","+
-                                                (watchAcc[2]-devicePhoneAcc[2])
+                                                (watchAcc[2]-devicePhoneAcc[2])+";"+
+                                                (watchG[0]-devicePhoneG[0])+","+
+                                                (watchG[1]-devicePhoneG[1])+","+
+                                                (watchG[2]-devicePhoneG[2])
                                 );
                                 subBW.newLine();
                                 //使用缓冲区中的方法，将数据刷新到目的地文件中去。
